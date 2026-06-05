@@ -8,9 +8,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY main.py .
 COPY static/ static/
 
-# /data is expected to be a mounted persistent volume
-VOLUME ["/data"]
-
 ENV DB_PATH=/data/tracker.db
 ENV PORT=8000
 
