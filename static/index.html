@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Summer Success Tracker</title>
+<style>
+  :root {
+    --primary: #4f8ef7;
+    --primary-dark: #2563eb;
+    --success: #22c55e;
+    --danger: #ef4444;
+    --warning: #f59e0b;
+    --bg: #f0f4ff;
+    --card: #ffffff;
+    --border: #e2e8f0;
+    --text: #1e293b;
+    --muted: #64748b;
+    --radius: 12px;
+    --shadow: 0 2px 12px rgba(0,0,0,0.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* ── Login ── */
+  #login-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 24px; gap: 16px; }
+  #login-screen h1 { font-size: 2rem; font-weight: 800; color: var(--primary-dark); text-align: center; }
+  #login-screen p { color: var(--muted); text-align: center; margin-bottom: 8px; }
+  .login-buttons { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; }
+  .login-btn { padding: 14px 32px; border-radius: var(--radius); border: none; font-size: 1rem; font-weight: 700; cursor: pointer; transition: transform .1s, box-shadow .1s; min-width: 160px; }
+  .login-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.15); }
+  .login-btn.parent { background: var(--primary); color: #fff; }
+  .login-btn.kid    { background: var(--success); color: #fff; }
+
+  #pin-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); align-items: center; justify-content: center; z-index: 100; }
+  #pin-modal-overlay.open { display: flex; }
+  #pin-modal { background: var(--card); border-radius: var(--radius); padding: 32px; width: 320px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); display: flex; flex-direction: column; gap: 16px; }
+  #pin-modal h2 { font-size: 1.2rem; font-weight: 700; }
+  #pin-input { width: 100%; padding: 12px; border: 2px solid var(--border); border-radius: 8px; font-size: 1.5rem; text-align: center; letter-spacing: 6px; outline: none; transition: border-color .2s; }
+  #pin-input:focus { border-color: var(--primary); }
+  #pin-error { color: var(--danger); font-size: .875rem; min-height: 1.2em; }
+  .modal-actions { display: flex; gap: 10px; }
+  .btn { padding: 10px 20px; border-radius: 8px; border: none; font-size: .9rem; font-weight: 600; cursor: pointer; transition: opacity .15s; }
+  .btn:hover { opacity: .85; }
+  .btn-primary { background: var(--primary); color: #fff; flex: 1; }
+  .btn-secondary { background: var(--border); color: var(--text); }
+
+  /* ── App shell ── */
+  #app { display: none; flex-direction: column; min-height: 100vh; }
+  #app.visible { display: flex; }
+
+  header { background: var(--primary-dark); color: #fff; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 60px; position: sticky; top: 0; z-index: 50; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+  header h1 { font-size: 1.1rem; font-weight: 800; }
+  #user-badge { display: flex; align-items: center; gap: 12px; font-size: .85rem; }
+  #role-chip { padding: 3px 10px; border-radius: 99px; font-weight: 700; font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; }
+  #role-chip.parent { background: #fbbf24; color: #78350f; }
+  #role-chip.kid    { background: #86efac; color: #14532d; }
+  #logout-btn { background: rgba(255,255,255,0.15); border: none; color: #fff; padding: 5px 12px; border-radius: 6px; cursor: pointer; font-size: .8rem; font-weight: 600; }
+  #logout-btn:hover { background: rgba(255,255,255,0.25); }
+
+  nav { background: var(--card); border-bottom: 1px solid var(--border); display: flex; padding: 0 16px; overflow-x: auto; gap: 4px; }
+  .tab-btn { padding: 14px 18px; border: none; background: none; cursor: pointer; font-size: .9rem; font-weight: 600; color: var(--muted); white-space: nowrap; border-bottom: 3px solid transparent; margin-bottom: -1px; transition: color .15s, border-color .15s; }
+  .tab-btn.active { color: var(--primary-dark); border-color: var(--primary); }
+  .tab-btn:hover:not(.active) { color: var(--text); }
+
+  main { flex: 1; padding: 24px; max-width: 960px; margin: 0 auto; width: 100%; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ── Week navigator ── */
+  .week-nav { display: flex; align-items: center; justify-content: space-between; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 16px; margin-bottom: 20px; box-shadow: var(--shadow); }
+  .week-nav-btn { background: none; border: 1px solid var(--border); border-radius: 8px; width: 34px; height: 34px; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; transition: background .15s; }
+  .week-nav-btn:hover:not(:disabled) { background: var(--bg); }
+  .week-nav-btn:disabled { opacity: .3; cursor: default; }
+  .week-nav-center { text-align: center; }
+  .week-nav-label { font-weight: 800; font-size: 1rem; color: var(--primary-dark); }
+  .week-nav-dates { font-size: .78rem; color: var(--muted); margin-top: 2px; }
+  .week-dots { display: flex; gap: 5px; justify-content: center; margin-top: 6px; }
+  .week-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); cursor: pointer; transition: background .15s; }
+  .week-dot.active { background: var(--primary); }
+  .week-dot.has-data { background: #bfdbfe; }
+  .week-dot.active.has-data { background: var(--primary); }
+
+  /* ── Cards ── */
+  .card { background: var(--card); border-radius: var(--radius); border: 1px solid var(--border); box-shadow: var(--shadow); padding: 20px; margin-bottom: 20px; }
+  .card-title { font-size: 1rem; font-weight: 700; margin-bottom: 16px; color: var(--text); }
+  .card-title-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .card-title-row .card-title { margin-bottom: 0; }
+
+  /* ── Daily grid ── */
+  .week-grid { overflow-x: auto; }
+  table.task-grid { width: 100%; border-collapse: collapse; font-size: .875rem; }
+  table.task-grid th { text-align: center; padding: 8px 6px; font-weight: 700; color: var(--muted); font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; border-bottom: 2px solid var(--border); }
+  table.task-grid th.task-col { text-align: left; min-width: 180px; }
+  table.task-grid td { padding: 8px 6px; text-align: center; border-bottom: 1px solid var(--border); }
+  table.task-grid td.task-name { text-align: left; font-weight: 500; color: var(--text); }
+  table.task-grid tr:last-child td { border-bottom: none; }
+  table.task-grid tr:hover td { background: #f8fafc; }
+  .day-check { width: 22px; height: 22px; accent-color: var(--success); cursor: pointer; }
+
+  /* ── Goal rows ── */
+  .goal-list { display: flex; flex-direction: column; gap: 10px; }
+  .goal-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px; background: #f8fafc; border: 1px solid var(--border); }
+  .goal-row input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--success); cursor: pointer; flex-shrink: 0; }
+  .goal-row label { flex: 1; font-size: .9rem; cursor: pointer; }
+  .goal-row.done label { text-decoration: line-through; color: var(--muted); }
+
+  /* ── Comments ── */
+  .comment-card { background: var(--card); border-radius: var(--radius); border: 1px solid var(--border); box-shadow: var(--shadow); padding: 20px; margin-bottom: 20px; }
+  .comment-label { font-size: .85rem; font-weight: 700; color: var(--text); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+  .comment-badge { font-size: .7rem; padding: 2px 7px; border-radius: 99px; font-weight: 700; }
+  .comment-badge.parent-only { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+  .comment-badge.kid { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+  textarea.comment-box { width: 100%; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; font-size: .875rem; font-family: inherit; resize: vertical; min-height: 72px; outline: none; transition: border-color .2s; color: var(--text); background: #f8fafc; }
+  textarea.comment-box:focus { border-color: var(--primary); background: #fff; }
+  textarea.comment-box:read-only { background: #f1f5f9; color: var(--muted); cursor: default; }
+  textarea.comment-box.parent-locked { background: #fffbeb; border-color: #fde68a; }
+
+  /* ── Progress bar ── */
+  .progress-wrap { margin-top: 8px; }
+  .progress-bar-bg { background: var(--border); border-radius: 99px; height: 10px; overflow: hidden; }
+  .progress-bar-fill { height: 100%; border-radius: 99px; background: var(--success); transition: width .4s; }
+  .progress-label { font-size: .75rem; color: var(--muted); margin-top: 4px; }
+
+  /* ── Milestone list ── */
+  .milestone-list { display: flex; flex-direction: column; gap: 6px; }
+  .milestone-item { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: #f8fafc; }
+  .milestone-item.done { background: #f0fdf4; border-color: #bbf7d0; }
+  .milestone-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; }
+  .milestone-num { font-size: .75rem; font-weight: 700; color: var(--muted); min-width: 24px; }
+  .milestone-item.done .milestone-num { color: var(--success); }
+  .milestone-row input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--success); cursor: pointer; flex-shrink: 0; }
+  .milestone-row label { flex: 1; font-weight: 500; cursor: pointer; }
+  .milestone-item.done .milestone-row label { text-decoration: line-through; color: var(--muted); }
+  .milestone-comment-wrap { padding: 0 14px 12px; display: flex; flex-direction: column; gap: 8px; }
+  textarea.milestone-comment { width: 100%; border: 1px solid var(--border); border-radius: 7px; padding: 8px 10px; font-size: .82rem; font-family: inherit; resize: vertical; min-height: 52px; outline: none; background: var(--card); color: var(--text); transition: border-color .2s; }
+  textarea.milestone-comment:focus { border-color: var(--primary); }
+  .milestone-dates { display: flex; gap: 12px; flex-wrap: wrap; }
+  .milestone-date-field { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 150px; }
+  .milestone-date-label { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  input.milestone-date { border: 1px solid var(--border); border-radius: 7px; padding: 6px 10px; font-size: .82rem; font-family: inherit; background: var(--card); color: var(--text); outline: none; transition: border-color .2s; width: 100%; }
+  input.milestone-date:focus { border-color: var(--primary); }
+  .milestone-item.done input.milestone-date[data-field="completed"] { border-color: #bbf7d0; background: #f0fdf4; }
+
+  /* ── Book list ── */
+  .book-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+  .book-card { border-radius: 10px; border: 1px solid var(--border); padding: 14px; display: flex; align-items: flex-start; gap: 12px; background: #f8fafc; transition: background .15s, border-color .15s; cursor: pointer; }
+  .book-card:hover { background: #eff6ff; border-color: #bfdbfe; }
+  .book-card.read { background: #f0fdf4; border-color: #bbf7d0; }
+  .book-card input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--success); flex-shrink: 0; margin-top: 2px; cursor: pointer; }
+  .book-info { flex: 1; }
+  .book-title { font-weight: 600; font-size: .9rem; }
+  .book-author { font-size: .78rem; color: var(--muted); margin-top: 2px; }
+  .book-card.read .book-title { text-decoration: line-through; color: var(--muted); }
+
+  /* ── Overview ── */
+  .overview-toggle { display: flex; background: var(--border); border-radius: 8px; padding: 3px; margin-bottom: 20px; width: fit-content; }
+  .overview-toggle-btn { padding: 7px 18px; border-radius: 6px; border: none; background: none; font-size: .875rem; font-weight: 600; color: var(--muted); cursor: pointer; transition: all .15s; }
+  .overview-toggle-btn.active { background: var(--card); color: var(--primary-dark); box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(175px, 1fr)); gap: 14px; margin-bottom: 20px; }
+  .stat-card { border-radius: var(--radius); padding: 16px; text-align: center; border: 1px solid var(--border); background: var(--card); box-shadow: var(--shadow); }
+  .stat-num { font-size: 2rem; font-weight: 800; color: var(--primary-dark); }
+  .stat-label { font-size: .8rem; color: var(--muted); margin-top: 4px; }
+
+  /* Summer overview grid */
+  .summer-week-table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+  .summer-week-table th { padding: 8px 10px; text-align: center; font-weight: 700; color: var(--muted); font-size: .72rem; text-transform: uppercase; border-bottom: 2px solid var(--border); }
+  .summer-week-table th.left { text-align: left; }
+  .summer-week-table td { padding: 8px 10px; text-align: center; border-bottom: 1px solid var(--border); }
+  .summer-week-table td.left { text-align: left; font-weight: 600; }
+  .summer-week-table tr:last-child td { border-bottom: none; }
+  .pct-pill { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: .75rem; font-weight: 700; }
+  .pct-pill.none  { background: #f1f5f9; color: var(--muted); }
+  .pct-pill.low   { background: #fee2e2; color: #991b1b; }
+  .pct-pill.mid   { background: #fef3c7; color: #92400e; }
+  .pct-pill.high  { background: #dcfce7; color: #166534; }
+  .current-week-row td { background: #eff6ff; }
+  .current-week-row td.left { color: var(--primary-dark); }
+
+  /* ── Task manager (parent) ── */
+  #task-manager { display: none; }
+  #task-manager.open { display: block; }
+  .task-manager-panel { background: #fffbeb; border: 2px solid var(--warning); border-radius: var(--radius); padding: 18px; margin-bottom: 20px; }
+  .task-manager-panel h3 { font-size: .95rem; font-weight: 700; margin-bottom: 14px; color: #92400e; }
+  .task-edit-row { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px solid #fde68a; }
+  .task-edit-row:last-of-type { border-bottom: none; }
+  .task-edit-row input[type="text"] { flex: 1; padding: 6px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: .875rem; }
+  .task-edit-row input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--success); }
+  .icon-btn { background: none; border: 1px solid var(--border); border-radius: 6px; width: 30px; height: 30px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: .9rem; transition: background .15s; }
+  .icon-btn:hover { background: var(--border); }
+  .icon-btn.danger:hover { background: #fee2e2; border-color: var(--danger); color: var(--danger); }
+  .add-task-row { display: flex; gap: 8px; margin-top: 12px; }
+  .add-task-row input { flex: 1; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: .875rem; }
+  .manage-btn { padding: 6px 14px; border-radius: 8px; border: 2px solid var(--warning); background: #fffbeb; color: #92400e; font-weight: 700; font-size: .8rem; cursor: pointer; transition: background .15s; }
+  .manage-btn:hover { background: #fef3c7; }
+
+  /* ── Misc ── */
+  .sync-status { font-size: .75rem; color: var(--muted); text-align: right; padding: 4px 0; min-height: 1.4em; }
+  .sync-status.saving { color: var(--warning); }
+  .sync-status.saved  { color: var(--success); }
+  .sync-status.error  { color: var(--danger); }
+  .section-gap { margin-bottom: 20px; }
+
+  @media (max-width: 600px) {
+    main { padding: 16px; }
+    .stats-grid { grid-template-columns: 1fr 1fr; }
+    .book-grid { grid-template-columns: 1fr; }
+    .summer-week-table { font-size: .72rem; }
+    .summer-week-table th, .summer-week-table td { padding: 6px 6px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════ LOGIN ══════════════════════════ -->
+<div id="login-screen">
+  <h1>☀️ Summer Success Tracker</h1>
+  <p>Choose your login to get started</p>
+  <div class="login-buttons">
+    <button class="login-btn parent" onclick="openPinModal('parent')">👨‍👩‍👧 Parent Login</button>
+    <button class="login-btn kid"    onclick="openPinModal('kid')">🧒 Kid Login</button>
+  </div>
+</div>
+
+<div id="pin-modal-overlay">
+  <div id="pin-modal">
+    <h2 id="pin-modal-title">Enter PIN</h2>
+    <input type="password" id="pin-input" placeholder="••••" maxlength="20" inputmode="numeric"
+           onkeydown="if(event.key==='Enter') submitPin()">
+    <div id="pin-error"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closePinModal()">Cancel</button>
+      <button class="btn btn-primary"   onclick="submitPin()">Login</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════ APP ══════════════════════════ -->
+<div id="app">
+  <header>
+    <h1>☀️ Summer Success Tracker</h1>
+    <div id="user-badge">
+      <span id="role-chip"></span>
+      <button id="logout-btn" onclick="logout()">Logout</button>
+    </div>
+  </header>
+
+  <nav>
+    <button class="tab-btn active" data-tab="weekly">Weekly Tasks</button>
+    <button class="tab-btn" data-tab="overview">Overview</button>
+    <button class="tab-btn" data-tab="milestones">AI Game Project</button>
+    <button class="tab-btn" data-tab="reading">Reading List</button>
+  </nav>
+
+  <main>
+    <div class="sync-status" id="sync-status"></div>
+
+    <!-- ── Weekly Tasks ── -->
+    <div class="tab-panel active" id="tab-weekly">
+      <!-- Week navigator -->
+      <div class="week-nav">
+        <button class="week-nav-btn" id="week-prev" onclick="changeWeek(-1)">‹</button>
+        <div class="week-nav-center">
+          <div class="week-nav-label" id="week-nav-label"></div>
+          <div class="week-nav-dates" id="week-nav-dates"></div>
+          <div class="week-dots" id="week-dots"></div>
+        </div>
+        <button class="week-nav-btn" id="week-next" onclick="changeWeek(1)">›</button>
+      </div>
+
+      <!-- Task manager (parent only) -->
+      <div id="task-manager">
+        <div class="task-manager-panel">
+          <h3>⚙️ Manage Daily Tasks</h3>
+          <div id="task-edit-list"></div>
+          <div class="add-task-row">
+            <input type="text" id="new-task-input" placeholder="New task name…" maxlength="100"
+                   onkeydown="if(event.key==='Enter') addTask()">
+            <button class="btn btn-primary" onclick="addTask()">+ Add</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Daily grid -->
+      <div class="card">
+        <div class="card-title-row">
+          <span class="card-title">Daily Tasks</span>
+          <button id="manage-tasks-btn" class="manage-btn" onclick="toggleTaskManager()" style="display:none">
+            ⚙️ Manage Tasks
+          </button>
+        </div>
+        <div class="week-grid">
+          <table class="task-grid" id="daily-grid">
+            <thead><tr id="day-header-row"><th class="task-col">Task</th></tr></thead>
+            <tbody id="daily-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Weekly goals -->
+      <div class="card">
+        <div class="card-title">Weekly Goals</div>
+        <div class="goal-list" id="weekly-goals-list"></div>
+      </div>
+
+      <!-- Comments -->
+      <div class="comment-card">
+        <div class="comment-label">
+          Kid's Notes
+          <span class="comment-badge kid">Kid</span>
+        </div>
+        <textarea class="comment-box" id="kid-comments" placeholder="How did the week go? What went well?"></textarea>
+      </div>
+
+      <div class="comment-card">
+        <div class="comment-label">
+          Parent Comments
+          <span class="comment-badge parent-only">Parent only</span>
+        </div>
+        <textarea class="comment-box parent-locked" id="parent-comments" placeholder="Feedback, encouragement, notes…"></textarea>
+      </div>
+    </div>
+
+    <!-- ── Overview ── -->
+    <div class="tab-panel" id="tab-overview">
+      <div class="overview-toggle">
+        <button class="overview-toggle-btn active" data-view="weekly" onclick="switchOverview('weekly')">This Week</button>
+        <button class="overview-toggle-btn" data-view="summer" onclick="switchOverview('summer')">Full Summer</button>
+      </div>
+
+      <div id="overview-weekly">
+        <div class="stats-grid" id="stats-grid-weekly"></div>
+        <div class="card" id="overview-weekly-detail"></div>
+      </div>
+
+      <div id="overview-summer" style="display:none">
+        <div class="stats-grid" id="stats-grid-summer"></div>
+        <div class="card">
+          <div class="card-title">Week-by-Week Progress</div>
+          <div style="overflow-x:auto">
+            <table class="summer-week-table" id="summer-table"></table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── AI Game Project ── -->
+    <div class="tab-panel" id="tab-milestones">
+      <div class="card">
+        <div class="card-title-row">
+          <span class="card-title">AI Game Project Milestones</span>
+          <span id="milestone-count" style="font-size:.85rem;color:var(--muted)"></span>
+        </div>
+        <div class="progress-wrap" style="margin-bottom:18px">
+          <div class="progress-bar-bg"><div class="progress-bar-fill" id="milestone-bar" style="width:0%"></div></div>
+          <div class="progress-label" id="milestone-label"></div>
+        </div>
+        <div class="milestone-list" id="milestone-list"></div>
+      </div>
+    </div>
+
+    <!-- ── Reading List ── -->
+    <div class="tab-panel" id="tab-reading">
+      <div class="card">
+        <div class="card-title-row">
+          <span class="card-title">Reading List</span>
+          <span id="book-count" style="font-size:.85rem;color:var(--muted)"></span>
+        </div>
+        <div class="progress-wrap" style="margin-bottom:18px">
+          <div class="progress-bar-bg"><div class="progress-bar-fill" id="book-bar" style="width:0%"></div></div>
+          <div class="progress-label" id="book-label"></div>
+        </div>
+        <div class="book-grid" id="book-grid"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// STATIC DATA
+// ═══════════════════════════════════════════════════════
+
+// Fixed 9-week summer schedule (Mon–Sun, starting Jun 1 2026)
+const WEEKS = [
+  { label: 'Week 1', dates: 'Jun 1–7',     start: new Date('2026-06-01') },
+  { label: 'Week 2', dates: 'Jun 8–14',    start: new Date('2026-06-08') },
+  { label: 'Week 3', dates: 'Jun 15–21',   start: new Date('2026-06-15') },
+  { label: 'Week 4', dates: 'Jun 22–28',   start: new Date('2026-06-22') },
+  { label: 'Week 5', dates: 'Jun 29–Jul 5',start: new Date('2026-06-29') },
+  { label: 'Week 6', dates: 'Jul 6–12',    start: new Date('2026-07-06') },
+  { label: 'Week 7', dates: 'Jul 13–19',   start: new Date('2026-07-13') },
+  { label: 'Week 8', dates: 'Jul 20–26',   start: new Date('2026-07-20') },
+  { label: 'Week 9', dates: 'Jul 27–Aug 3',start: new Date('2026-07-27') },
+];
+
+const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+
+const WEEKLY_GOALS = [
+  'Spanish XP goal (250 XP)',
+  'Khan Academy (5 sessions / 150 min)',
+  'Reading',
+  'Personal Finance Lesson (1 lesson)',
+  'AI Game Progress made',
+  'Parent check-in (15-minute review)',
+];
+
+const MILESTONES = [
+  'Brainstorm 3 game ideas',
+  'Choose final game idea',
+  'Write game story and rules',
+  'Create characters with AI',
+  'Create artwork with AI',
+  'Build playable prototype',
+  'Test with family/friends',
+  'Improve game based on feedback',
+  'Create title screen',
+  'Final presentation/demo',
+];
+
+const BOOKS = [
+  { title: 'Artemis',                author: 'Andy Weir' },
+  { title: 'The Hunger Games',       author: 'Suzanne Collins' },
+  { title: "Ender's Game",           author: 'Orson Scott Card' },
+  { title: 'Skyward',                author: 'Brandon Sanderson' },
+  { title: 'Red Rising',             author: 'Pierce Brown' },
+  { title: 'The Hobbit',             author: 'Tolkien' },
+  { title: 'Eragon',                 author: 'Christopher Paolini' },
+  { title: 'Ready Player One',       author: 'Ernest Cline' },
+  { title: 'Scythe',                 author: 'Neal Shusterman' },
+  { title: 'Lost Stars',             author: 'Claudia Gray' },
+  { title: 'Heir to the Jedi',       author: 'Kevin Hearne' },
+  { title: 'The Ascendancy Trilogy', author: 'Timothy Zahn' },
+];
+
+// ═══════════════════════════════════════════════════════
+// REWARD SYSTEM HOOK
+// Points are computed here and can be used by a future
+// rewards UI. Adjust values as desired.
+// ═══════════════════════════════════════════════════════
+const POINTS = {
+  taskCheck:  10,   // per daily task checkbox
+  goalMet:    25,   // per weekly goal
+  milestone:  50,   // per milestone completed
+  bookRead:   30,   // per book read
+};
+
+function computeTotalPoints(state, tasks) {
+  let pts = 0;
+  WEEKS.forEach((_, wi) => {
+    const wk = `w${wi}`;
+    tasks.filter(t => t.active).forEach(t => {
+      DAYS.forEach((_, di) => {
+        if (state[`daily:${wk}:${t.id}:${di}`]) pts += POINTS.taskCheck;
+      });
+    });
+    WEEKLY_GOALS.forEach((_, gi) => {
+      if (state[`goal:${wk}:${gi}`]) pts += POINTS.goalMet;
+    });
+  });
+  MILESTONES.forEach((_, i) => {
+    if (state[`milestone:${i}`]) pts += POINTS.milestone;
+  });
+  BOOKS.forEach((_, i) => {
+    if (state[`book:${i}`]) pts += POINTS.bookRead;
+  });
+  return pts;
+}
+
+// ═══════════════════════════════════════════════════════
+// APP STATE
+// ═══════════════════════════════════════════════════════
+
+let sessionToken = null;
+let userRole = null;
+let pendingLoginRole = null;
+let appState = {};
+let apiTasks = [];
+let currentWeekIdx = 0;
+let overviewMode = 'weekly';
+let saveTimer = null;
+let taskManagerOpen = false;
+let commentTimers = {};
+
+function wk(idx) { return `w${idx}`; }
+
+function getHeaders() {
+  return {
+    'Content-Type': 'application/json',
+    'X-Session-Token': sessionToken || '',
+    'X-Role': userRole || '',
+  };
+}
+
+function getCheck(key)      { return !!appState[key]; }
+function getText(key)       { return appState[key] || ''; }
+function setVal(key, val)   { appState[key] = val; scheduleSave(); }
+
+// ═══════════════════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════════════════
+
+function openPinModal(role) {
+  pendingLoginRole = role;
+  document.getElementById('pin-modal-title').textContent =
+    role === 'parent' ? '👨‍👩‍👧 Parent PIN' : '🧒 Kid PIN';
+  document.getElementById('pin-input').value = '';
+  document.getElementById('pin-error').textContent = '';
+  document.getElementById('pin-modal-overlay').classList.add('open');
+  setTimeout(() => document.getElementById('pin-input').focus(), 100);
+}
+
+function closePinModal() {
+  document.getElementById('pin-modal-overlay').classList.remove('open');
+  pendingLoginRole = null;
+}
+
+async function submitPin() {
+  const pin = document.getElementById('pin-input').value.trim();
+  if (!pin) return;
+  document.getElementById('pin-error').textContent = '';
+  try {
+    const res = await fetch('/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role: pendingLoginRole, pin }),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      document.getElementById('pin-error').textContent = err.detail || 'Incorrect PIN';
+      return;
+    }
+    const data = await res.json();
+    sessionToken = data.token;
+    userRole = data.role;
+    localStorage.setItem('sessionToken', sessionToken);
+    localStorage.setItem('userRole', userRole);
+    closePinModal();
+    await startApp();
+  } catch (e) {
+    document.getElementById('pin-error').textContent = 'Network error. Try again.';
+  }
+}
+
+function logout() {
+  localStorage.removeItem('sessionToken');
+  localStorage.removeItem('userRole');
+  sessionToken = null; userRole = null; appState = {}; apiTasks = [];
+  document.getElementById('app').classList.remove('visible');
+  document.getElementById('login-screen').style.display = '';
+}
+
+// ═══════════════════════════════════════════════════════
+// STARTUP
+// ═══════════════════════════════════════════════════════
+
+async function init() {
+  const storedToken = localStorage.getItem('sessionToken');
+  const storedRole  = localStorage.getItem('userRole');
+  if (storedToken && storedRole) {
+    try {
+      const res = await fetch('/auth/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Session-Token': storedToken, 'X-Role': storedRole },
+      });
+      if (res.ok) {
+        sessionToken = storedToken; userRole = storedRole;
+        await startApp(); return;
+      }
+    } catch (_) {}
+    localStorage.removeItem('sessionToken');
+    localStorage.removeItem('userRole');
+  }
+  document.getElementById('login-screen').style.display = '';
+}
+
+async function startApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').classList.add('visible');
+
+  const chip = document.getElementById('role-chip');
+  chip.textContent = userRole === 'parent' ? 'Parent' : 'Kid';
+  chip.className = `role-chip ${userRole}`;
+
+  if (userRole === 'parent') {
+    document.getElementById('manage-tasks-btn').style.display = '';
+  }
+
+  // Set current week based on today's date
+  const today = new Date();
+  const summerEnd = new Date('2026-08-04');
+  if (today >= summerEnd) {
+    currentWeekIdx = WEEKS.length - 1;
+  } else {
+    currentWeekIdx = 0;
+    for (let i = WEEKS.length - 1; i >= 0; i--) {
+      if (today >= WEEKS[i].start) { currentWeekIdx = i; break; }
+    }
+  }
+
+  await Promise.all([loadTasks(), loadData()]);
+  renderAll();
+  setupTabs();
+}
+
+// ═══════════════════════════════════════════════════════
+// API
+// ═══════════════════════════════════════════════════════
+
+async function loadTasks() {
+  const res = await fetch('/tasks', { headers: getHeaders() });
+  if (res.ok) apiTasks = await res.json();
+}
+
+async function loadData() {
+  const res = await fetch('/data', { headers: getHeaders() });
+  if (res.ok) { const b = await res.json(); appState = b.state || {}; }
+}
+
+function scheduleSave() {
+  setSyncStatus('saving');
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveData, 1000);
+}
+
+async function saveData() {
+  setSyncStatus('saving');
+  try {
+    const res = await fetch('/data', {
+      method: 'POST', headers: getHeaders(),
+      body: JSON.stringify({ state: appState }),
+    });
+    if (res.ok) setSyncStatus('saved'); else setSyncStatus('error');
+  } catch (_) { setSyncStatus('error'); }
+}
+
+function setSyncStatus(s) {
+  const el = document.getElementById('sync-status');
+  if (s === 'saving') { el.textContent = 'Saving…'; el.className = 'sync-status saving'; }
+  else if (s === 'saved') { el.textContent = 'Saved ✓'; el.className = 'sync-status saved'; setTimeout(() => { el.textContent = ''; }, 2500); }
+  else { el.textContent = 'Save failed'; el.className = 'sync-status error'; }
+}
+
+// ═══════════════════════════════════════════════════════
+// WEEK NAVIGATION
+// ═══════════════════════════════════════════════════════
+
+function changeWeek(delta) {
+  const next = currentWeekIdx + delta;
+  if (next < 0 || next >= WEEKS.length) return;
+  currentWeekIdx = next;
+  renderWeeklyTab();
+  updateWeekNav();
+}
+
+function goToWeek(idx) {
+  currentWeekIdx = idx;
+  renderWeeklyTab();
+  updateWeekNav();
+}
+
+function updateWeekNav() {
+  const w = WEEKS[currentWeekIdx];
+  document.getElementById('week-nav-label').textContent = w.label;
+  document.getElementById('week-nav-dates').textContent = w.dates;
+  document.getElementById('week-prev').disabled = currentWeekIdx === 0;
+  document.getElementById('week-next').disabled = currentWeekIdx === WEEKS.length - 1;
+
+  // Dots
+  const dotsEl = document.getElementById('week-dots');
+  dotsEl.innerHTML = '';
+  WEEKS.forEach((_, i) => {
+    const dot = document.createElement('div');
+    const hasData = weekHasData(i);
+    dot.className = `week-dot${i === currentWeekIdx ? ' active' : ''}${hasData ? ' has-data' : ''}`;
+    dot.title = WEEKS[i].label;
+    dot.onclick = () => goToWeek(i);
+    dotsEl.appendChild(dot);
+  });
+}
+
+function weekHasData(wi) {
+  const w = wk(wi);
+  const activeTasks = apiTasks.filter(t => t.active);
+  for (const t of activeTasks) {
+    for (let d = 0; d < 7; d++) {
+      if (appState[`daily:${w}:${t.id}:${d}`]) return true;
+    }
+  }
+  for (let g = 0; g < WEEKLY_GOALS.length; g++) {
+    if (appState[`goal:${w}:${g}`]) return true;
+  }
+  if (appState[`comments:${w}:kid`] || appState[`comments:${w}:parent`]) return true;
+  return false;
+}
+
+// ═══════════════════════════════════════════════════════
+// TASK MANAGER (parent only)
+// ═══════════════════════════════════════════════════════
+
+function toggleTaskManager() {
+  taskManagerOpen = !taskManagerOpen;
+  document.getElementById('task-manager').classList.toggle('open', taskManagerOpen);
+  document.getElementById('manage-tasks-btn').textContent =
+    taskManagerOpen ? '✕ Close' : '⚙️ Manage Tasks';
+  if (taskManagerOpen) renderTaskEditList();
+}
+
+function renderTaskEditList() {
+  const container = document.getElementById('task-edit-list');
+  container.innerHTML = '';
+  apiTasks.forEach(task => {
+    const row = document.createElement('div');
+    row.className = 'task-edit-row';
+    row.innerHTML = `
+      <input type="checkbox" title="Active" ${task.active ? 'checked' : ''}
+             onchange="toggleTaskActive(${task.id}, this.checked)">
+      <input type="text" value="${escHtml(task.name)}" data-id="${task.id}"
+             onblur="renameTask(${task.id}, this.value)"
+             onkeydown="if(event.key==='Enter') this.blur()">
+      <button class="icon-btn danger" onclick="deleteTask(${task.id})" title="Delete">🗑</button>
+    `;
+    container.appendChild(row);
+  });
+}
+
+async function renameTask(id, name) {
+  name = name.trim();
+  const task = apiTasks.find(t => t.id === id);
+  if (!task || !name || task.name === name) return;
+  const res = await fetch(`/tasks/${id}`, { method: 'PUT', headers: getHeaders(), body: JSON.stringify({ name }) });
+  if (res.ok) { Object.assign(task, await res.json()); renderDailyGrid(); }
+}
+
+async function toggleTaskActive(id, active) {
+  const res = await fetch(`/tasks/${id}`, { method: 'PUT', headers: getHeaders(), body: JSON.stringify({ active }) });
+  if (res.ok) {
+    const idx = apiTasks.findIndex(t => t.id === id);
+    if (idx >= 0) apiTasks[idx] = await res.json();
+    renderDailyGrid();
+    if (taskManagerOpen) renderTaskEditList();
+  }
+}
+
+async function deleteTask(id) {
+  if (!confirm('Delete this task?')) return;
+  const res = await fetch(`/tasks/${id}`, { method: 'DELETE', headers: getHeaders() });
+  if (res.ok) {
+    apiTasks = apiTasks.filter(t => t.id !== id);
+    renderDailyGrid(); renderTaskEditList();
+  }
+}
+
+async function addTask() {
+  const input = document.getElementById('new-task-input');
+  const name = input.value.trim();
+  if (!name) return;
+  const res = await fetch('/tasks', { method: 'POST', headers: getHeaders(), body: JSON.stringify({ name }) });
+  if (res.ok) { apiTasks.push(await res.json()); input.value = ''; renderDailyGrid(); renderTaskEditList(); }
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════════
+
+function renderAll() {
+  updateWeekNav();
+  renderWeeklyTab();
+  renderMilestones();
+  renderBooks();
+  renderOverview();
+}
+
+function renderWeeklyTab() {
+  renderDailyGrid();
+  renderWeeklyGoals();
+  renderComments();
+  renderOverview();
+  updateWeekNav();
+}
+
+// ── Daily grid ──────────────────────────────────────────
+
+function renderDailyGrid() {
+  const activeTasks = apiTasks.filter(t => t.active);
+  const w = wk(currentWeekIdx);
+
+  const headerRow = document.getElementById('day-header-row');
+  headerRow.innerHTML = '<th class="task-col">Task</th>';
+  DAYS.forEach(d => { const th = document.createElement('th'); th.textContent = d; headerRow.appendChild(th); });
+
+  const body = document.getElementById('daily-body');
+  body.innerHTML = '';
+
+  activeTasks.forEach(task => {
+    const tr = document.createElement('tr');
+    const tdName = document.createElement('td');
+    tdName.className = 'task-name'; tdName.textContent = task.name;
+    tr.appendChild(tdName);
+
+    DAYS.forEach((_, di) => {
+      const td = document.createElement('td');
+      const key = `daily:${w}:${task.id}:${di}`;
+      const cb = document.createElement('input');
+      cb.type = 'checkbox'; cb.className = 'day-check'; cb.checked = getCheck(key);
+      cb.addEventListener('change', () => { setVal(key, cb.checked); renderOverview(); updateWeekNav(); });
+      td.appendChild(cb); tr.appendChild(td);
+    });
+    body.appendChild(tr);
+  });
+}
+
+// ── Weekly goals ─────────────────────────────────────────
+
+function renderWeeklyGoals() {
+  const list = document.getElementById('weekly-goals-list');
+  list.innerHTML = '';
+  const w = wk(currentWeekIdx);
+
+  WEEKLY_GOALS.forEach((goal, i) => {
+    const key = `goal:${w}:${i}`;
+    const checked = getCheck(key);
+    const row = document.createElement('div');
+    row.className = `goal-row${checked ? ' done' : ''}`;
+    const id = `goal-${i}`;
+    const cb = document.createElement('input');
+    cb.type = 'checkbox'; cb.id = id; cb.checked = checked;
+    cb.addEventListener('change', () => {
+      setVal(key, cb.checked);
+      row.classList.toggle('done', cb.checked);
+      renderOverview();
+    });
+    const label = document.createElement('label');
+    label.htmlFor = id; label.textContent = goal;
+    row.append(cb, label);
+    list.appendChild(row);
+  });
+}
+
+// ── Comments ─────────────────────────────────────────────
+
+function renderComments() {
+  const w = wk(currentWeekIdx);
+  const kidEl    = document.getElementById('kid-comments');
+  const parentEl = document.getElementById('parent-comments');
+
+  // Remove old listeners by replacing nodes
+  const newKid    = kidEl.cloneNode(true);
+  const newParent = parentEl.cloneNode(true);
+  kidEl.replaceWith(newKid);
+  parentEl.replaceWith(newParent);
+
+  const kidFresh    = document.getElementById('kid-comments');
+  const parentFresh = document.getElementById('parent-comments');
+
+  kidFresh.value    = getText(`comments:${w}:kid`);
+  parentFresh.value = getText(`comments:${w}:parent`);
+
+  // Kid comments: editable by both roles
+  kidFresh.readOnly = false;
+  kidFresh.addEventListener('input', () => {
+    clearTimeout(commentTimers.kid);
+    commentTimers.kid = setTimeout(() => { setVal(`comments:${w}:kid`, kidFresh.value); }, 800);
+  });
+
+  // Parent comments: only editable by parent
+  if (userRole === 'parent') {
+    parentFresh.readOnly = false;
+    parentFresh.classList.remove('parent-locked');
+    parentFresh.addEventListener('input', () => {
+      clearTimeout(commentTimers.parent);
+      commentTimers.parent = setTimeout(() => { setVal(`comments:${w}:parent`, parentFresh.value); }, 800);
+    });
+  } else {
+    parentFresh.readOnly = true;
+    parentFresh.classList.add('parent-locked');
+    parentFresh.placeholder = 'Parent comments appear here…';
+  }
+}
+
+// ── Milestones ───────────────────────────────────────────
+
+function renderMilestones() {
+  const list = document.getElementById('milestone-list');
+  list.innerHTML = '';
+
+  MILESTONES.forEach((m, i) => {
+    const key         = `milestone:${i}`;
+    const commentKey  = `milestone:comment:${i}`;
+    const checked     = getCheck(key);
+
+    const item = document.createElement('div');
+    item.className = `milestone-item${checked ? ' done' : ''}`;
+
+    const row = document.createElement('div');
+    row.className = 'milestone-row';
+
+    const num = document.createElement('span');
+    num.className = 'milestone-num';
+    num.textContent = checked ? '✓' : `${i + 1}`;
+
+    const id = `ms-${i}`;
+    const cb = document.createElement('input');
+    cb.type = 'checkbox'; cb.id = id; cb.checked = checked;
+    cb.addEventListener('change', () => {
+      setVal(key, cb.checked);
+      item.classList.toggle('done', cb.checked);
+      num.textContent = cb.checked ? '✓' : `${i + 1}`;
+      updateMilestoneProgress();
+      renderOverview();
+    });
+
+    const label = document.createElement('label');
+    label.htmlFor = id; label.textContent = m;
+    row.append(num, cb, label);
+
+    const commentWrap = document.createElement('div');
+    commentWrap.className = 'milestone-comment-wrap';
+
+    // Date fields
+    const targetKey    = `milestone:target:${i}`;
+    const completedKey = `milestone:completed:${i}`;
+    const datesRow = document.createElement('div');
+    datesRow.className = 'milestone-dates';
+    [
+      { label: 'Target Date',        key: targetKey,    field: 'target' },
+      { label: 'Completed On',       key: completedKey, field: 'completed' },
+    ].forEach(({ label, key, field }) => {
+      const wrap = document.createElement('div');
+      wrap.className = 'milestone-date-field';
+      const lbl = document.createElement('div');
+      lbl.className = 'milestone-date-label';
+      lbl.textContent = label;
+      const inp = document.createElement('input');
+      inp.type = 'date'; inp.className = 'milestone-date';
+      inp.dataset.field = field;
+      inp.value = getText(key);
+      inp.addEventListener('change', () => {
+        setVal(key, inp.value);
+      });
+      wrap.append(lbl, inp);
+      datesRow.appendChild(wrap);
+    });
+
+    const ta = document.createElement('textarea');
+    ta.className = 'milestone-comment';
+    ta.placeholder = 'Notes, ideas, progress…';
+    ta.value = getText(commentKey);
+    ta.addEventListener('input', () => {
+      clearTimeout(commentTimers[`ms${i}`]);
+      commentTimers[`ms${i}`] = setTimeout(() => { setVal(commentKey, ta.value); }, 800);
+    });
+    commentWrap.append(datesRow, ta);
+
+    item.append(row, commentWrap);
+    list.appendChild(item);
+  });
+
+  updateMilestoneProgress();
+}
+
+function updateMilestoneProgress() {
+  const done = MILESTONES.filter((_, i) => getCheck(`milestone:${i}`)).length;
+  const pct  = Math.round(done / MILESTONES.length * 100);
+  document.getElementById('milestone-bar').style.width  = pct + '%';
+  document.getElementById('milestone-label').textContent = `${done} of ${MILESTONES.length} milestones completed`;
+  document.getElementById('milestone-count').textContent = `${done}/${MILESTONES.length}`;
+}
+
+// ── Books ────────────────────────────────────────────────
+
+function renderBooks() {
+  const grid = document.getElementById('book-grid');
+  grid.innerHTML = '';
+
+  BOOKS.forEach((book, i) => {
+    const key = `book:${i}`;
+    const checked = getCheck(key);
+    const card = document.createElement('div');
+    card.className = `book-card${checked ? ' read' : ''}`;
+
+    const id = `book-${i}`;
+    const cb = document.createElement('input');
+    cb.type = 'checkbox'; cb.id = id; cb.checked = checked;
+    cb.addEventListener('change', e => {
+      e.stopPropagation();
+      setVal(key, cb.checked);
+      card.classList.toggle('read', cb.checked);
+      updateBookProgress();
+      renderOverview();
+    });
+    card.addEventListener('click', () => { cb.checked = !cb.checked; cb.dispatchEvent(new Event('change')); });
+
+    const info = document.createElement('div');
+    info.className = 'book-info';
+    info.innerHTML = `<div class="book-title">${escHtml(book.title)}</div><div class="book-author">${escHtml(book.author)}</div>`;
+    card.append(cb, info);
+    grid.appendChild(card);
+  });
+  updateBookProgress();
+}
+
+function updateBookProgress() {
+  const read = BOOKS.filter((_, i) => getCheck(`book:${i}`)).length;
+  const pct  = Math.round(read / BOOKS.length * 100);
+  document.getElementById('book-bar').style.width  = pct + '%';
+  document.getElementById('book-label').textContent = `${read} of ${BOOKS.length} books read`;
+  document.getElementById('book-count').textContent = `${read}/${BOOKS.length}`;
+}
+
+// ═══════════════════════════════════════════════════════
+// OVERVIEW
+// ═══════════════════════════════════════════════════════
+
+function switchOverview(mode) {
+  overviewMode = mode;
+  document.querySelectorAll('.overview-toggle-btn').forEach(b => b.classList.toggle('active', b.dataset.view === mode));
+  document.getElementById('overview-weekly').style.display = mode === 'weekly' ? '' : 'none';
+  document.getElementById('overview-summer').style.display = mode === 'summer' ? '' : 'none';
+  renderOverview();
+}
+
+function renderOverview() {
+  if (overviewMode === 'weekly') renderWeeklyOverview();
+  else renderSummerOverview();
+}
+
+function weekStats(wi) {
+  const w = wk(wi);
+  const activeTasks = apiTasks.filter(t => t.active);
+  const totalChecks = activeTasks.length * DAYS.length;
+  let doneChecks = 0;
+  activeTasks.forEach(t => {
+    DAYS.forEach((_, di) => { if (appState[`daily:${w}:${t.id}:${di}`]) doneChecks++; });
+  });
+  const goalsDone = WEEKLY_GOALS.filter((_, i) => appState[`goal:${w}:${i}`]).length;
+  return { doneChecks, totalChecks, goalsDone };
+}
+
+function renderWeeklyOverview() {
+  const { doneChecks, totalChecks, goalsDone } = weekStats(currentWeekIdx);
+  const mssDone   = MILESTONES.filter((_, i) => getCheck(`milestone:${i}`)).length;
+  const booksDone = BOOKS.filter((_, i) => getCheck(`book:${i}`)).length;
+  const totalPts  = computeTotalPoints(appState, apiTasks);
+
+  const statsEl = document.getElementById('stats-grid-weekly');
+  statsEl.innerHTML = `
+    <div class="stat-card"><div class="stat-num">${doneChecks}/${totalChecks}</div><div class="stat-label">Task checks this week</div></div>
+    <div class="stat-card"><div class="stat-num">${goalsDone}/${WEEKLY_GOALS.length}</div><div class="stat-label">Weekly goals met</div></div>
+    <div class="stat-card"><div class="stat-num">${mssDone}/${MILESTONES.length}</div><div class="stat-label">Milestones done</div></div>
+    <div class="stat-card"><div class="stat-num">${booksDone}/${BOOKS.length}</div><div class="stat-label">Books read</div></div>
+  `;
+
+  const rows = [
+    { label: 'Daily tasks',          done: doneChecks, total: totalChecks },
+    { label: 'Weekly goals',         done: goalsDone,  total: WEEKLY_GOALS.length },
+    { label: 'AI Game milestones',   done: mssDone,    total: MILESTONES.length },
+    { label: 'Books read',           done: booksDone,  total: BOOKS.length },
+  ];
+  const detail = document.getElementById('overview-weekly-detail');
+  detail.innerHTML = `<div class="card-title">${WEEKS[currentWeekIdx].label}: ${WEEKS[currentWeekIdx].dates}</div>` +
+    rows.map(r => {
+      const pct = r.total ? Math.round(r.done / r.total * 100) : 0;
+      return `<div style="margin-bottom:14px">
+        <div style="display:flex;justify-content:space-between;font-size:.85rem;margin-bottom:4px">
+          <span style="font-weight:600">${r.label}</span>
+          <span style="color:var(--muted)">${r.done}/${r.total} (${pct}%)</span>
+        </div>
+        <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${pct}%"></div></div>
+      </div>`;
+    }).join('');
+}
+
+function renderSummerOverview() {
+  const mssDone   = MILESTONES.filter((_, i) => getCheck(`milestone:${i}`)).length;
+  const booksDone = BOOKS.filter((_, i) => getCheck(`book:${i}`)).length;
+
+  let totalChecks = 0, totalDone = 0, totalGoalsDone = 0;
+  WEEKS.forEach((_, wi) => {
+    const s = weekStats(wi);
+    totalChecks += s.totalChecks;
+    totalDone   += s.doneChecks;
+    totalGoalsDone += s.goalsDone;
+  });
+  const totalPts = computeTotalPoints(appState, apiTasks);
+
+  document.getElementById('stats-grid-summer').innerHTML = `
+    <div class="stat-card"><div class="stat-num">${totalDone}/${totalChecks}</div><div class="stat-label">Total task checks</div></div>
+    <div class="stat-card"><div class="stat-num">${totalGoalsDone}/${WEEKLY_GOALS.length * WEEKS.length}</div><div class="stat-label">Goals met all summer</div></div>
+    <div class="stat-card"><div class="stat-num">${mssDone}/${MILESTONES.length}</div><div class="stat-label">Milestones done</div></div>
+    <div class="stat-card"><div class="stat-num">${booksDone}/${BOOKS.length}</div><div class="stat-label">Books read</div></div>
+  `;
+
+  const activeTasks = apiTasks.filter(t => t.active);
+
+  // Week-by-week table
+  const table = document.getElementById('summer-table');
+  const taskColHeaders = activeTasks.map(t => `<th>${escHtml(t.name.length > 14 ? t.name.slice(0,13)+'…' : t.name)}</th>`).join('');
+  table.innerHTML = `
+    <thead>
+      <tr>
+        <th class="left">Week</th>
+        <th>Tasks</th>
+        <th>%</th>
+        <th>Goals</th>
+        ${taskColHeaders.length ? '<th colspan="' + activeTasks.length + '">Per-task</th>' : ''}
+      </tr>
+    </thead>
+    <tbody id="summer-tbody"></tbody>
+  `;
+
+  const tbody = document.getElementById('summer-tbody');
+  WEEKS.forEach((week, wi) => {
+    const w = wk(wi);
+    const { doneChecks, totalChecks, goalsDone } = weekStats(wi);
+    const pct = totalChecks ? Math.round(doneChecks / totalChecks * 100) : 0;
+    const pillClass = pct === 0 ? 'none' : pct < 50 ? 'low' : pct < 80 ? 'mid' : 'high';
+    const isCurrent = wi === currentWeekIdx;
+
+    const taskCells = activeTasks.map(t => {
+      const done = DAYS.filter((_, di) => appState[`daily:${w}:${t.id}:${di}`]).length;
+      const p = Math.round(done / 7 * 100);
+      const pc = p === 0 ? 'none' : p < 50 ? 'low' : p < 80 ? 'mid' : 'high';
+      return `<td><span class="pct-pill ${pc}">${done}/7</span></td>`;
+    }).join('');
+
+    const tr = document.createElement('tr');
+    if (isCurrent) tr.className = 'current-week-row';
+    tr.innerHTML = `
+      <td class="left" style="cursor:pointer;color:var(--primary)" onclick="goToWeekFromOverview(${wi})">
+        ${week.label}${isCurrent ? ' ◀' : ''}<br>
+        <span style="font-weight:400;font-size:.72rem;color:var(--muted)">${week.dates}</span>
+      </td>
+      <td>${doneChecks}/${totalChecks}</td>
+      <td><span class="pct-pill ${pillClass}">${pct}%</span></td>
+      <td>${goalsDone}/${WEEKLY_GOALS.length}</td>
+      ${taskCells}
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function goToWeekFromOverview(wi) {
+  currentWeekIdx = wi;
+  // Switch to weekly tab
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelector('[data-tab="weekly"]').classList.add('active');
+  document.getElementById('tab-weekly').classList.add('active');
+  renderWeeklyTab();
+}
+
+// ═══════════════════════════════════════════════════════
+// TABS
+// ═══════════════════════════════════════════════════════
+
+function setupTabs() {
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById(`tab-${btn.dataset.tab}`).classList.add('active');
+      if (btn.dataset.tab === 'overview') renderOverview();
+    });
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════════
+
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// ═══════════════════════════════════════════════════════
+// BOOT
+// ═══════════════════════════════════════════════════════
+
+document.getElementById('login-screen').style.display = 'none';
+document.getElementById('app').classList.remove('visible');
+init();
+</script>
+</body>
+</html>
