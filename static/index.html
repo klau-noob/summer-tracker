@@ -202,6 +202,12 @@
   .sync-status.error  { color: var(--danger); }
   .section-gap { margin-bottom: 20px; }
 
+  /* ── Confetti & toasts ── */
+  #confetti-canvas { position: fixed; inset: 0; pointer-events: none; z-index: 200; width: 100vw; height: 100vh; }
+  #toast-container { position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 201; display: flex; flex-direction: column; gap: 8px; align-items: center; pointer-events: none; }
+  .toast { background: var(--text); color: #fff; padding: 10px 20px; border-radius: 99px; font-size: .9rem; font-weight: 700; box-shadow: 0 4px 16px rgba(0,0,0,0.2); opacity: 0; transform: translateY(-12px) scale(.95); transition: opacity .25s, transform .25s; white-space: nowrap; }
+  .toast.show { opacity: 1; transform: translateY(0) scale(1); }
+
   @media (max-width: 600px) {
     main { padding: 16px; }
     .stats-grid { grid-template-columns: 1fr 1fr; }
@@ -222,6 +228,9 @@
     <button class="login-btn kid"    onclick="openPinModal('kid')">🧒 Kid Login</button>
   </div>
 </div>
+
+<canvas id="confetti-canvas"></canvas>
+<div id="toast-container"></div>
 
 <div id="pin-modal-overlay">
   <div id="pin-modal">
@@ -804,7 +813,11 @@ function renderDailyGrid() {
       const key = `daily:${w}:${task.id}:${di}`;
       const cb = document.createElement('input');
       cb.type = 'checkbox'; cb.className = 'day-check'; cb.checked = getCheck(key);
-      cb.addEventListener('change', () => { setVal(key, cb.checked); renderOverview(); updateWeekNav(); });
+      cb.addEventListener('change', () => {
+        setVal(key, cb.checked);
+        if (cb.checked) celebrate('task');
+        renderOverview(); updateWeekNav();
+      });
       td.appendChild(cb); tr.appendChild(td);
     });
     body.appendChild(tr);
@@ -829,6 +842,7 @@ function renderWeeklyGoals() {
     cb.addEventListener('change', () => {
       setVal(key, cb.checked);
       row.classList.toggle('done', cb.checked);
+      if (cb.checked) celebrate('goal', true);
       renderOverview();
     });
     const label = document.createElement('label');
@@ -907,6 +921,7 @@ function renderMilestones() {
       setVal(key, cb.checked);
       item.classList.toggle('done', cb.checked);
       num.textContent = cb.checked ? '✓' : `${i + 1}`;
+      if (cb.checked) celebrate('milestone', true);
       updateMilestoneProgress();
       renderOverview();
     });
@@ -987,6 +1002,7 @@ function renderBooks() {
       e.stopPropagation();
       setVal(key, cb.checked);
       card.classList.toggle('read', cb.checked);
+      if (cb.checked) celebrate('book', true);
       updateBookProgress();
       renderOverview();
     });
@@ -1165,6 +1181,105 @@ function setupTabs() {
       if (btn.dataset.tab === 'overview') renderOverview();
     });
   });
+}
+
+// ═══════════════════════════════════════════════════════
+// CELEBRATIONS: confetti + toast messages
+// ═══════════════════════════════════════════════════════
+
+const TOAST_MESSAGES = {
+  task:      ['Nice work! ✅', 'Boom! 🚀', 'You\'re on fire! 🔥', 'Crushed it! 💪', 'Way to go! 🌟', 'Checked off! 🙌', 'Awesome! 🎯', 'Keep it up! ⭐'],
+  goal:      ['Goal smashed! 🏆', 'Weekly win! 🎉', 'Amazing! 🥳', 'You did it! 🌈', 'Goal achieved! 🎯'],
+  milestone: ['Milestone unlocked! 🏆', 'Huge progress! 🎮', 'Level up! 🆙', 'Game dev win! 🎉', 'Crushing it! 🚀'],
+  book:      ['Book finished! 📚', 'Bookworm! 🐛', 'Story complete! ✨', 'Reading champ! 🏅', 'Page-turner done! 📖'],
+};
+
+function showToast(category) {
+  const messages = TOAST_MESSAGES[category] || TOAST_MESSAGES.task;
+  const text = messages[Math.floor(Math.random() * messages.length)];
+
+  const container = document.getElementById('toast-container');
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.textContent = text;
+  container.appendChild(toast);
+
+  requestAnimationFrame(() => toast.classList.add('show'));
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => toast.remove(), 300);
+  }, 2200);
+}
+
+let confettiAnimating = false;
+let confettiParticles = [];
+
+function fireConfetti(big = false) {
+  const canvas = document.getElementById('confetti-canvas');
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  const colors = ['#4f8ef7', '#22c55e', '#f59e0b', '#ef4444', '#a855f7', '#ec4899', '#14b8a6'];
+  const count = big ? 160 : 70;
+
+  for (let i = 0; i < count; i++) {
+    confettiParticles.push({
+      x: Math.random() * canvas.width,
+      y: -20 - Math.random() * canvas.height * 0.3,
+      size: 6 + Math.random() * 6,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      speedY: 2 + Math.random() * 4,
+      speedX: (Math.random() - 0.5) * 3,
+      rotation: Math.random() * 360,
+      rotationSpeed: (Math.random() - 0.5) * 12,
+      shape: Math.random() < 0.5 ? 'rect' : 'circle',
+    });
+  }
+
+  if (!confettiAnimating) {
+    confettiAnimating = true;
+    requestAnimationFrame(animateConfetti);
+  }
+}
+
+function animateConfetti() {
+  const canvas = document.getElementById('confetti-canvas');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  confettiParticles.forEach(p => {
+    p.x += p.speedX;
+    p.y += p.speedY;
+    p.rotation += p.rotationSpeed;
+
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.rotate(p.rotation * Math.PI / 180);
+    ctx.fillStyle = p.color;
+    if (p.shape === 'rect') {
+      ctx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2);
+    } else {
+      ctx.beginPath();
+      ctx.arc(0, 0, p.size / 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  });
+
+  confettiParticles = confettiParticles.filter(p => p.y < canvas.height + 30);
+
+  if (confettiParticles.length > 0) {
+    requestAnimationFrame(animateConfetti);
+  } else {
+    confettiAnimating = false;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+}
+
+function celebrate(category, big = false) {
+  fireConfetti(big);
+  showToast(category);
 }
 
 // ═══════════════════════════════════════════════════════
