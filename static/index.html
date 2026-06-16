@@ -178,6 +178,48 @@
   .current-week-row td { background: #eff6ff; }
   .current-week-row td.left { color: var(--primary-dark); }
 
+  /* ── Points / reward progress ── */
+  .reward-card { background: linear-gradient(135deg, #1e293b 0%, #312e81 60%, #4c1d95 100%); border-radius: var(--radius); padding: 22px 22px 24px; margin-bottom: 20px; color: #fff; box-shadow: 0 6px 24px rgba(76,29,149,0.35); position: relative; overflow: hidden; }
+  .reward-card::after { content: ''; position: absolute; top: -40%; right: -10%; width: 280px; height: 280px; background: radial-gradient(circle, rgba(250,204,21,0.18) 0%, transparent 70%); pointer-events: none; }
+  .reward-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; gap: 12px; flex-wrap: wrap; }
+  .reward-title { font-size: 1.05rem; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+  .reward-points { font-size: 1.5rem; font-weight: 900; letter-spacing: -.02em; }
+  .reward-points small { font-size: .85rem; font-weight: 600; opacity: .7; }
+  .reward-track-wrap { display: flex; align-items: center; gap: 14px; }
+  .reward-track { position: relative; flex: 1; height: 22px; background: rgba(255,255,255,0.12); border-radius: 99px; overflow: hidden; box-shadow: inset 0 1px 3px rgba(0,0,0,0.3); }
+  .reward-fill { position: absolute; inset: 0 auto 0 0; height: 100%; border-radius: 99px; background: linear-gradient(90deg, #38bdf8 0%, #818cf8 45%, #c084fc 70%, #facc15 100%); background-size: 200% 100%; transition: width .8s cubic-bezier(.16,1,.3,1); box-shadow: 0 0 12px rgba(250,204,21,0.5); }
+  .reward-fill::before { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.45) 50%, transparent 100%); transform: translateX(-100%); animation: shimmer 2.4s infinite; }
+  @keyframes shimmer { 100% { transform: translateX(220%); } }
+  .reward-kbd { flex-shrink: 0; width: 56px; height: 40px; filter: grayscale(1) brightness(.8); opacity: .55; transition: filter .5s, opacity .5s, transform .5s; }
+  .reward-kbd.lit { filter: none; opacity: 1; transform: scale(1.08); animation: kbdGlow 1.6s ease-in-out infinite; }
+  @keyframes kbdGlow { 0%,100% { filter: drop-shadow(0 0 4px rgba(250,204,21,0.6)); } 50% { filter: drop-shadow(0 0 14px rgba(250,204,21,1)); } }
+  .reward-caption { font-size: .82rem; opacity: .85; margin-top: 12px; display: flex; align-items: center; gap: 6px; }
+  .reward-milestones { display: flex; justify-content: space-between; margin-top: 6px; font-size: .68rem; opacity: .55; }
+
+  /* Award form (parent) */
+  .award-form { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+  .award-field { display: flex; flex-direction: column; gap: 4px; }
+  .award-field label { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .award-field.grow { flex: 1; min-width: 180px; }
+  .award-field input { padding: 9px 11px; border: 1px solid var(--border); border-radius: 8px; font-size: .9rem; font-family: inherit; outline: none; transition: border-color .2s; width: 100%; }
+  .award-field input:focus { border-color: var(--primary); }
+  .award-field input[type="number"] { width: 110px; }
+  .award-btn { padding: 10px 20px; border-radius: 8px; border: none; background: var(--success); color: #fff; font-weight: 700; font-size: .9rem; cursor: pointer; transition: opacity .15s; white-space: nowrap; }
+  .award-btn:hover { opacity: .88; }
+
+  /* Points log table */
+  .points-table { width: 100%; border-collapse: collapse; font-size: .875rem; }
+  .points-table th { text-align: left; padding: 10px 12px; font-weight: 700; color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; border-bottom: 2px solid var(--border); }
+  .points-table th.right, .points-table td.right { text-align: right; }
+  .points-table td { padding: 11px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .points-table tr:last-child td { border-bottom: none; }
+  .points-amount { font-weight: 800; color: var(--success); white-space: nowrap; }
+  .points-date { color: var(--muted); font-size: .82rem; white-space: nowrap; }
+  .points-empty { text-align: center; color: var(--muted); padding: 28px 12px; font-size: .9rem; }
+  .points-del { background: none; border: 1px solid var(--border); border-radius: 6px; width: 28px; height: 28px; cursor: pointer; font-size: .8rem; transition: background .15s; }
+  .points-del:hover { background: #fee2e2; border-color: var(--danger); color: var(--danger); }
+  .points-total-row td { font-weight: 800; border-top: 2px solid var(--border); border-bottom: none; padding-top: 14px; }
+
   /* ── Task manager (parent) ── */
   #task-manager { display: none; }
   #task-manager.open { display: block; }
@@ -260,6 +302,7 @@
     <button class="tab-btn" data-tab="overview">Overview</button>
     <button class="tab-btn" data-tab="milestones">AI Game Project</button>
     <button class="tab-btn" data-tab="reading">Reading List</button>
+    <button class="tab-btn" data-tab="points">Points</button>
   </nav>
 
   <main>
@@ -333,6 +376,60 @@
 
     <!-- ── Overview ── -->
     <div class="tab-panel" id="tab-overview">
+
+      <!-- Reward progress toward keyboard -->
+      <div class="reward-card">
+        <div class="reward-head">
+          <div class="reward-title">⌨️ Keyboard Reward Quest</div>
+          <div class="reward-points"><span id="reward-points-num">0</span> <small>/ <span id="reward-goal">500</span> pts</small></div>
+        </div>
+        <div class="reward-track-wrap">
+          <div class="reward-track"><div class="reward-fill" id="reward-fill" style="width:0%"></div></div>
+          <svg class="reward-kbd" id="reward-kbd" viewBox="0 0 64 44" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Keyboard">
+            <rect x="1.5" y="6.5" width="61" height="35" rx="5" fill="#0f172a" stroke="#facc15" stroke-width="2"/>
+            <g fill="#facc15">
+              <rect x="7"  y="12" width="6" height="6" rx="1.5"/>
+              <rect x="16" y="12" width="6" height="6" rx="1.5"/>
+              <rect x="25" y="12" width="6" height="6" rx="1.5"/>
+              <rect x="34" y="12" width="6" height="6" rx="1.5"/>
+              <rect x="43" y="12" width="6" height="6" rx="1.5"/>
+              <rect x="52" y="12" width="5" height="6" rx="1.5"/>
+              <rect x="7"  y="21" width="6" height="6" rx="1.5"/>
+              <rect x="16" y="21" width="6" height="6" rx="1.5"/>
+              <rect x="25" y="21" width="6" height="6" rx="1.5"/>
+              <rect x="34" y="21" width="6" height="6" rx="1.5"/>
+              <rect x="43" y="21" width="6" height="6" rx="1.5"/>
+              <rect x="52" y="21" width="5" height="6" rx="1.5"/>
+              <rect x="7"  y="30" width="6" height="6" rx="1.5"/>
+              <rect x="16" y="30" width="33" height="6" rx="1.5"/>
+              <rect x="52" y="30" width="5" height="6" rx="1.5"/>
+            </g>
+          </svg>
+        </div>
+        <div class="reward-milestones"><span>0</span><span>125</span><span>250</span><span>375</span><span>500 🎉</span></div>
+        <div class="reward-caption" id="reward-caption">Earn 500 points to unlock a brand-new gaming keyboard!</div>
+      </div>
+
+      <!-- Parent-only: award points form -->
+      <div class="card" id="award-card" style="display:none">
+        <div class="card-title">➕ Award Points</div>
+        <div class="award-form">
+          <div class="award-field">
+            <label for="award-amount">Points</label>
+            <input type="number" id="award-amount" placeholder="50" min="1" step="1">
+          </div>
+          <div class="award-field grow">
+            <label for="award-reason">Reason</label>
+            <input type="text" id="award-reason" placeholder="e.g. Great attitude all week" maxlength="120">
+          </div>
+          <div class="award-field">
+            <label for="award-date">Date</label>
+            <input type="date" id="award-date">
+          </div>
+          <button class="award-btn" onclick="awardPoints()">Award</button>
+        </div>
+      </div>
+
       <div class="overview-toggle">
         <button class="overview-toggle-btn active" data-view="weekly" onclick="switchOverview('weekly')">This Week</button>
         <button class="overview-toggle-btn" data-view="summer" onclick="switchOverview('summer')">Full Summer</button>
@@ -381,6 +478,27 @@
           <div class="progress-label" id="book-label"></div>
         </div>
         <div class="book-grid" id="book-grid"></div>
+      </div>
+    </div>
+
+    <!-- ── Points ── -->
+    <div class="tab-panel" id="tab-points">
+      <div class="card">
+        <div class="card-title-row">
+          <span class="card-title">🏆 Points Earned</span>
+          <span id="points-grand-total" style="font-size:.9rem;font-weight:800;color:var(--success)"></span>
+        </div>
+        <table class="points-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Reason</th>
+              <th class="right">Points</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="points-log-body"></tbody>
+        </table>
       </div>
     </div>
   </main>
@@ -475,6 +593,103 @@ function computeTotalPoints(state, tasks) {
     if (state[`book:${i}`]) pts += POINTS.bookRead;
   });
   return pts;
+}
+
+// ═══════════════════════════════════════════════════════
+// POINTS / REWARD QUEST  (parent-awarded points toward 500)
+// ═══════════════════════════════════════════════════════
+const POINTS_GOAL = 500;
+
+function getBonusAwards() {
+  if (!Array.isArray(appState.bonus_awards)) appState.bonus_awards = [];
+  return appState.bonus_awards;
+}
+
+function bonusTotal() {
+  return getBonusAwards().reduce((sum, a) => sum + (Number(a.amount) || 0), 0);
+}
+
+function todayISO() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function fmtDate(iso) {
+  if (!iso) return '—';
+  const [y, m, d] = iso.split('-').map(Number);
+  if (!y) return iso;
+  return new Date(y, m - 1, d).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function awardPoints() {
+  const amtEl    = document.getElementById('award-amount');
+  const reasonEl = document.getElementById('award-reason');
+  const dateEl   = document.getElementById('award-date');
+  const amount = parseInt(amtEl.value, 10);
+  if (!amount || amount <= 0) { amtEl.focus(); return; }
+
+  getBonusAwards().push({
+    id: 'a' + Date.now() + Math.random().toString(36).slice(2, 6),
+    amount,
+    reason: reasonEl.value.trim(),
+    date: dateEl.value || todayISO(),
+  });
+  scheduleSave();
+
+  amtEl.value = ''; reasonEl.value = ''; dateEl.value = todayISO();
+  renderRewardBar();
+  renderPointsTab();
+  celebrate('goal', true);
+}
+
+function deleteAward(id) {
+  if (!confirm('Remove this points entry?')) return;
+  appState.bonus_awards = getBonusAwards().filter(a => a.id !== id);
+  scheduleSave();
+  renderRewardBar();
+  renderPointsTab();
+}
+
+function renderRewardBar() {
+  const total = bonusTotal();
+  const pct = Math.min(100, Math.round(total / POINTS_GOAL * 100));
+  document.getElementById('reward-points-num').textContent = total;
+  document.getElementById('reward-goal').textContent = POINTS_GOAL;
+  document.getElementById('reward-fill').style.width = pct + '%';
+
+  const kbd = document.getElementById('reward-kbd');
+  const caption = document.getElementById('reward-caption');
+  if (total >= POINTS_GOAL) {
+    kbd.classList.add('lit');
+    caption.textContent = '🎉 Reward unlocked! Time for a new gaming keyboard!';
+  } else {
+    kbd.classList.remove('lit');
+    caption.textContent = `${POINTS_GOAL - total} points to go until the new gaming keyboard!`;
+  }
+}
+
+function renderPointsTab() {
+  const tbody  = document.getElementById('points-log-body');
+  const awards = getBonusAwards().slice().sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  const total  = bonusTotal();
+  document.getElementById('points-grand-total').textContent = `${total} / ${POINTS_GOAL} pts`;
+
+  if (awards.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="4" class="points-empty">No points awarded yet.</td></tr>`;
+    return;
+  }
+
+  const canEdit = userRole === 'parent';
+  tbody.innerHTML = awards.map(a => `
+    <tr>
+      <td class="points-date">${fmtDate(a.date)}</td>
+      <td>${escHtml(a.reason || '—')}</td>
+      <td class="right points-amount">+${a.amount}</td>
+      <td class="right">${canEdit ? `<button class="points-del" onclick="deleteAward('${a.id}')" title="Remove">🗑</button>` : ''}</td>
+    </tr>`).join('') + `
+    <tr class="points-total-row">
+      <td>Total</td><td></td><td class="right">${total}</td><td></td>
+    </tr>`;
 }
 
 // ═══════════════════════════════════════════════════════
@@ -594,7 +809,11 @@ async function startApp() {
 
   if (userRole === 'parent') {
     document.getElementById('manage-tasks-btn').style.display = '';
+    document.getElementById('award-card').style.display = '';
+  } else {
+    document.getElementById('award-card').style.display = 'none';
   }
+  document.getElementById('award-date').value = todayISO();
 
   // Set current week based on today's date
   const today = new Date();
@@ -779,6 +998,7 @@ function renderAll() {
   renderMilestones();
   renderBooks();
   renderOverview();
+  renderPointsTab();
 }
 
 function renderWeeklyTab() {
@@ -1038,6 +1258,7 @@ function switchOverview(mode) {
 }
 
 function renderOverview() {
+  renderRewardBar();
   if (overviewMode === 'weekly') renderWeeklyOverview();
   else renderSummerOverview();
 }
@@ -1179,6 +1400,7 @@ function setupTabs() {
       btn.classList.add('active');
       document.getElementById(`tab-${btn.dataset.tab}`).classList.add('active');
       if (btn.dataset.tab === 'overview') renderOverview();
+      if (btn.dataset.tab === 'points') renderPointsTab();
     });
   });
 }
